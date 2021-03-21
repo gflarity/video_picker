@@ -11,7 +11,7 @@ Note: This works well for me, but **use at your own risk**.
 Install deno by follow instructions etc [here](https://deno.land). 
 
 ```bash
-deno compile --unstable --allow-run --allow-read --allow-write picker.ts
+deno compile --unstable --allow-run --allow-read --allow-write --allow-env picker.ts
 ```
 
 Move the picker executable somewhere into your path. Then run it in the directory that contains the videos you wish to sort through.
