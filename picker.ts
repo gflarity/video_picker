@@ -6,13 +6,13 @@ import { CHAR_NO_BREAK_SPACE }    from "https://deno.land/std@0.88.0/path/_const
 
 // processStdEntry prompts the user to delete or keep the file/entry (or quit altogether).
 async function processStdEntry(entry: WalkEntry, videoPlayer: string, videoPlayerOptions: string | undefined) {
-
+  console.log(`Processing std entry ${entry.path}`)
   // some video players (mpv) need options to be usable by default
   let cmd = [videoPlayer]
   if (videoPlayerOptions != null) {
     cmd = cmd.concat(videoPlayerOptions)
   }
-  const p = Deno.run({cmd: cmd.concat(entry.path), stdout: "null"})
+  const p = Deno.run({cmd: cmd.concat(entry.path), stdout: "null", stderr: "null"})
   await p.status()
   console.log("(D)elete/(K)eep/(Q)uit")
   
@@ -31,7 +31,7 @@ async function processStdEntry(entry: WalkEntry, videoPlayer: string, videoPlaye
 
 // processSkipEntry let's us treat the first N entries as quickly skippable which is useful for resuming a run for whatever reason.
 async function processSkipEntry(entry: WalkEntry, videoPlayer: string, videoPlayerOptions: string | undefined): Promise<boolean> {
-  console.log(`Processing ${entry.path}`)
+  console.log(`Processing skip entry ${entry.path}`)
   console.log("(S)kip/Any Key To Process")
   let complete = false;
   for await (const keypress of readKeypress()) {
