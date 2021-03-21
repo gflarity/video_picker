@@ -14,7 +14,7 @@ async function processStdEntry(entry: WalkEntry, videoPlayer: string, videoPlaye
   }
   const p = Deno.run({cmd: cmd.concat(entry.path), stdout: "null", stderr: "null"})
   await p.status()
-  console.log("(D)elete/(K)eep/(Q)uit")
+  console.log("(D)elete/(K)eep/(R)eplay/(Q)uit")
   
   FOR: for await (const keypress of readKeypress()) {
     if (keypress.key == "q") {
@@ -22,6 +22,9 @@ async function processStdEntry(entry: WalkEntry, videoPlayer: string, videoPlaye
     } else if (keypress.key == "d") {
       console.log(`deleting ${entry.path}`)
       await Deno.remove(entry.path)
+    } else if (keypress.key == "r") {
+      console.log(`replaying ${entry.path}`)
+      await processStdEntry(entry, videoPlayer, videoPlayerOptions)
     } else {
       console.log(`Keeping ${entry.path}`)
     }
