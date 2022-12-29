@@ -2,28 +2,29 @@ import {
   walk,
   WalkEntry,
   WalkOptions,
-} from "https://deno.land/std@0.88.0/fs/mod.ts";
+} from "https://deno.land/std@0.170.0/fs/mod.ts";
 import {
   Keypress,
   readKeypress,
-} from "https://deno.land/x/keypress@0.0.7/mod.ts";
+} from "https://raw.githubusercontent.com/dmitriytat/keypress/6d2ceffe2b4cca0145664b30ffccfbb28f5be737/mod.ts";
 import { CHAR_NO_BREAK_SPACE } from "https://deno.land/std@0.88.0/path/_constants.ts";
+import * as path from "https://deno.land/std@0.170.0/path/mod.ts"
 
 // processStdEntry prompts the user to delete or keep the file/entry (or quit altogether).
 async function processStdEntry(
   entry: WalkEntry,
   videoPlayer: string,
   videoPlayerOptions: string | undefined,
-  processed: Map<string, boolean>,
 ) {
+
   console.log(`Processing std entry ${entry.path}`);
   // some video players (mpv) need options to be usable by default
-  let cmd = [videoPlayer];
+  let vpcmd = [videoPlayer];
   if (videoPlayerOptions != null) {
-    cmd = cmd.concat(videoPlayerOptions);
+    vpcmd = vpcmd.concat(videoPlayerOptions);
   }
   const p = Deno.run({
-    cmd: cmd.concat(entry.path),
+    cmd: vpcmd.concat(entry.path),
     stdout: "null",
     stderr: "null",
   });
@@ -33,61 +34,52 @@ async function processStdEntry(
   FOR:
   for await (const keypress of readKeypress()) {
     if (keypress.key == "q") {
-      await saveProcessedFile(processed);
       Deno.exit(0);
     } else if (keypress.key == "d") {
-      console.log(`deleting ${entry.path}`);
-      await Deno.remove(entry.path);
+      const trashName = "./trash/" + path.basename(entry.path)
+      console.log(`trash: moving ${entry.path} to ${trashName}`);
+      await Deno.rename(entry.path, trashName);
     } else if (keypress.key == "r") {
       console.log(`replaying ${entry.path}`);
-      await processStdEntry(entry, videoPlayer, videoPlayerOptions, processed);
+      await processStdEntry(entry, videoPlayer, videoPlayerOptions);
     } else {
-      console.log(`Keeping ${entry.path}`);
-      processed.set(entry.path, true);
-      await saveProcessedFile(processed);
+      const keeperName = "./keepers/" + path.basename(entry.path)
+      console.log(`keeper: moving ${entry.path} to ${keeperName}`);
+      Deno.rename(entry.path, keeperName)
     }
     break FOR;
   }
 }
 
+// processSkipEntry let's us treat the first N entries as quickly skippable which is useful for resuming a run for whatever reason.
+async function processSkipEntry(
+  entry: WalkEntry,
+  videoPlayer: string,
+  videoPlayerOptions: string | undefined,
+): Promise<boolean> {
+  console.log(`Processing skip entry ${entry.path}`);
+  console.log("(S)kip/Any Key To Process");
+  let complete = false;
+  for await (const keypress of readKeypress()) {
+    if (keypress.key != "s") {
+      await processStdEntry(entry, videoPlayer, videoPlayerOptions);
+      complete = true;
+    }
+    break;
+  }
+  return complete;
+}
+
 async function main() {
   const videoPlayer = Deno.env.get("VIDEO_PLAYER") || "mplayer";
   const videoPlayerOptions = Deno.env.get("VIDEO_PLAYER_OPTIONS");
-  const walker = walk(".", { match: [new RegExp("(mp4|mkv|mov)$")] });
+  const walker = walk(".", { skip: [new RegExp("keepers"), new RegExp("trash")], match: [new RegExp("(mp4|mkv|mov)$")] });
 
-  let processed = await loadProcessedFile();
+  await Deno.mkdir("keepers", {recursive:true})
+  await Deno.mkdir("trash", {recursive:true})
+
   for await (const entry of walker) {
-    if (!processed.get(entry.path)) {
-      await processStdEntry(entry, videoPlayer, videoPlayerOptions, processed);
-    }
-  }
-  await saveProcessedFile(processed);
-}
-
-async function loadProcessedFile(): Promise<Map<string, boolean>> {
-  const decoder = new TextDecoder("utf-8");
-  try {
-    const data = await Deno.readFile("./.processed.json");
-    let jsonObject = JSON.parse(decoder.decode(data));
-    let processed = new Map<string, boolean>();
-    for (var value in jsonObject) {
-      processed.set(value, jsonObject[value]);
-    }
-    return processed;
-  } catch (e) {
-    console.log(e);
-    return new Map<string, boolean>();
-  }
-}
-
-async function saveProcessedFile(processed: Map<string, boolean>) {
-  try {
-    await Deno.writeTextFile(
-      "./.processed.json",
-      JSON.stringify(Object.fromEntries(processed)),
-    );
-  } catch (e) {
-    console.log(e);
+      await processStdEntry(entry, videoPlayer, videoPlayerOptions);
   }
 }
 
