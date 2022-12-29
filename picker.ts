@@ -73,7 +73,7 @@ async function processSkipEntry(
 async function main() {
   const videoPlayer = Deno.env.get("VIDEO_PLAYER") || "mplayer";
   const videoPlayerOptions = Deno.env.get("VIDEO_PLAYER_OPTIONS");
-  const walker = walk(".", { skip: [new RegExp("keepers"), new RegExp("trash")], match: [new RegExp("(mp4|mkv|mov)$")] });
+  const walker = walk(".", { skip: [new RegExp("keepers"), new RegExp("trash")], match: [new RegExp("(mp4|mkv|mov|iso)$", "i")] });
 
   await Deno.mkdir("keepers", {recursive:true})
   await Deno.mkdir("trash", {recursive:true})
