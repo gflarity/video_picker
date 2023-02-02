@@ -29,7 +29,7 @@ async function processStdEntry(
     stderr: "null",
   });
   await p.status();
-  console.log("(D)elete/(K)eep/(R)eplay/(Q)uit");
+  console.log("(d)elete/(k)eep/(r)eplay/(q)uit");
 
   FOR:
   for await (const keypress of readKeypress()) {
