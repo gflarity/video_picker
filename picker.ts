@@ -79,7 +79,11 @@ async function main() {
   await Deno.mkdir("trash", {recursive:true})
 
   for await (const entry of walker) {
-      await processStdEntry(entry, videoPlayer, videoPlayerOptions);
+    // skip directories, it's not an processable entry  
+    if(entry.isDirectory) {
+        continue
+      }
+    await processStdEntry(entry, videoPlayer, videoPlayerOptions);
   }
 }
 
